@@ -1,0 +1,5 @@
+[package]
+name = "sql_queries"
+
+[lib]
+proc-macro = true

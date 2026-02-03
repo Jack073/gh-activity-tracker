@@ -1,0 +1,10 @@
+[package]
+name = "gh-profile"
+version = "0.1.0"
+edition = "2024"
+
+[workspace]
+members = ["sql"]
+
+[dependencies]
+sql_queries = { path = "sql" }
