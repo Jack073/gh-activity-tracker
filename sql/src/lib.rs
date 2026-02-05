@@ -36,3 +36,78 @@ pub fn load_queries(_: TokenStream) -> TokenStream {
     )
     .unwrap()
 }
+
+#[proc_macro]
+pub fn get_essential_migrations(_: TokenStream) -> TokenStream {
+    TokenStream::from_str(&format!(
+        "{:?}",
+        &fs::read_dir("./sql/migrations/essential")
+            .expect("SQL essential migrations folder read error")
+            .map(|f| match f {
+                Ok(f) =>
+                    fs::read_to_string(f.path())
+                        .expect(&format!("sql read error: {}", f.path().to_str().unwrap()))
+                        .split_ascii_whitespace()
+                        .into_iter()
+                        .map(|s| s.to_owned())
+                        .reduce(|acc, e| acc.to_owned() + " " + &e)
+                        .unwrap_or("".to_owned())
+                        .replace("\"", "\\\"")
+                        .trim_end_matches(";")
+                        .to_owned()
+                        + ";",
+                Err(e) => panic!("unable to load SQL query: {}", e),
+            })
+            .collect::<Vec<String>>()
+    ))
+    .unwrap()
+}
+
+#[proc_macro]
+pub fn get_migrations(_: TokenStream) -> TokenStream {
+    let mut migration_data = fs::read_dir("./sql/migrations/migrations")
+        .expect("SQL essential migrations folder read error")
+        .filter_map(|f| match f {
+            Ok(n) => {
+                if n.file_name()
+                    .into_encoded_bytes()
+                    .ends_with(&".sql".chars().map(|c| c as u8).collect::<Vec<_>>())
+                {
+                    Some(n)
+                } else {
+                    None
+                }
+            }
+            Err(e) => panic!("unable to load file : {}", e),
+        })
+        .map(|f| {
+            (
+                f.file_name()
+                    .to_str()
+                    .expect("missing valid file name")
+                    .trim_end_matches(".sql")
+                    .parse::<u32>()
+                    .expect("invalid migration name"),
+                fs::read_to_string(f.path())
+                    .expect(&format!("sql read error: {}", f.path().to_str().unwrap()))
+                    .split_ascii_whitespace()
+                    .into_iter()
+                    .map(|s| s.to_owned())
+                    .reduce(|acc, e| acc.to_owned() + " " + &e)
+                    .unwrap_or("".to_owned())
+                    .replace("\"", "\\\"")
+                    .trim_end_matches(";")
+                    .to_owned()
+                    + ";",
+            )
+        })
+        .collect::<Vec<(_, _)>>();
+
+    migration_data.sort_by_key(|p| p.0);
+
+    TokenStream::from_str(&format!(
+        "{{let migrations: [(u32, String); _] = {:?};\nmigrations}}",
+        migration_data
+    ))
+    .unwrap()
+}
