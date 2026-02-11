@@ -13,29 +13,27 @@ pub mod queries {
 pub async fn do_migrations(client: &mut Client) -> Result<usize, tokio_postgres::Error> {
     client
         .batch_execute(&get_essential_migrations!().into_iter().join(""))
-        .await
-        .expect("essential migrations");
+        .await?;
 
     let latest_migration: i32 = client
         .query_one_scalar(queries::GET_LATEST_MIGRATION, &[])
-        .await
-        .expect("latest migration");
+        .await?;
 
     let mut migrated = 0;
 
-    let tx = client.transaction().await.expect("tx");
-    let stmt = tx.prepare(queries::INSERT_MIGRATION).await.expect("stmt");
+    let tx = client.transaction().await?;
+    let stmt = tx.prepare(queries::INSERT_MIGRATION).await?;
     for (id, migration) in get_migrations!()
         .iter()
         .skip_while(|(id, _)| *id > latest_migration as u32)
     {
         migrated += 1;
-        tx.execute(&stmt, &[id, &true]).await.expect("stmt execute");
-        tx.execute(migration, &[]).await.expect("migration");
+        tx.execute(&stmt, &[id, &true]).await?;
+        tx.execute(migration, &[]).await?;
     }
 
     if migrated > 0 {
-        tx.commit().await.expect("tx commit")
+        tx.commit().await?;
     }
 
     Ok(migrated)
