@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS migrations
 (
-    id         int,
-    applied_at timestamp with time zone,
-    applied    boolean
+    id         BIGINT,
+    applied_at TIMESTAMP WITH TIME ZONE,
+    applied    BOOLEAN
 )

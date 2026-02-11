@@ -23,12 +23,12 @@ pub async fn do_migrations(client: &mut Client) -> Result<usize, tokio_postgres:
 
     let tx = client.transaction().await?;
     let stmt = tx.prepare(queries::INSERT_MIGRATION).await?;
-    for (id, migration) in get_migrations!()
+    for &(id, migration) in get_migrations!()
         .iter()
-        .skip_while(|(id, _)| *id > latest_migration as u32)
+        .skip_while(|(id, _)| *id > latest_migration as i64)
     {
         migrated += 1;
-        tx.execute(&stmt, &[id, &true]).await?;
+        tx.execute(&stmt, &[&id, &true]).await?;
         tx.execute(migration, &[]).await?;
     }
 

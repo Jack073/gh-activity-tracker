@@ -86,7 +86,7 @@ pub fn get_migrations(_: TokenStream) -> TokenStream {
                     .to_str()
                     .expect("missing valid file name")
                     .trim_end_matches(".sql")
-                    .parse::<u32>()
+                    .parse::<i64>()
                     .expect("invalid migration name"),
                 fs::read_to_string(f.path())
                     .expect(&format!("sql read error: {}", f.path().to_str().unwrap()))
@@ -106,7 +106,7 @@ pub fn get_migrations(_: TokenStream) -> TokenStream {
     migration_data.sort_by_key(|p| p.0);
 
     TokenStream::from_str(&format!(
-        "{{let migrations: [(u32, String); _] = {:?};\nmigrations}}",
+        "{{let migrations: [(i64, &str); _] = {:?};\nmigrations}}",
         migration_data
     ))
     .unwrap()
